@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >0.2.0 <0.9.0;
 
+
 contract MockVRFCoordinator {
     function requestRandomWords(
         bytes32,
