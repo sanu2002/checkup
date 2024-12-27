@@ -1,174 +1,154 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >0.2.0 <0.9.0;
 
-
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// internal & private view & pure functions
-// external & public view & pure functions
-
+// Imports
 import {VRFConsumerBaseV2Plus} from
     "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 /**
- * @title A simple Raffle contract
- * @author
- * @notice This contract is for creating a simple raffle
- * @dev Implements Chainlink VRFv2.5
+ * @title A Simple Raffle Contract
+ * @notice This contract allows users to enter a raffle with automated winner selection using Chainlink VRF v2.5
  */
 contract Raffle is VRFConsumerBaseV2Plus {
     // Errors
-    error Moreraffle_Money();
-    error Raffletransaction_Failed();
-    error Raffleupkeepnotneeded(uint256 balance, uint256 numPlayers, Raflestate state);
+    error InsufficientEntranceFee();
+    error TransactionFailed();
+    error RaffleNotOpen();
+    error RaffleUpkeepNotNeeded(uint256 balance, uint256 numPlayers, RaffleState state);
 
-    // Type declarations
-    enum Raflestate {
+    // Enum: Raffle State
+    enum RaffleState {
         OPEN, // 0
-        Inprogress, // 1
-        Closed // 2
+        IN_PROGRESS, // 1
+        CLOSED // 2
 
     }
 
-    // State variables
-    uint256 private immutable i_entrance;
-    uint256 private immutable s_subscriptionid;
+    // State Variables
+    uint256 private immutable i_entranceFee;
     uint256 private immutable i_interval;
-    bytes32 private immutable s_keyhash;
-    uint32 private constant callbackGasLimit = 40000;
-    uint16 private constant requestConfirmations = 3;
-    uint32 private constant numWords = 1;
+    uint256 private immutable i_subscriptionId;
+    bytes32 private immutable i_keyHash;
 
-    uint256 private s_lasttimestamp;
-    address private s_recentwinner;
+    uint256 private s_lastTimestamp;
+    address private s_recentWinner;
     address payable[] private s_players;
-    Raflestate private s_raflestate;
+    RaffleState private s_raffleState;
+
+    // VRF Parameters
+    uint32 private constant CALLBACK_GAS_LIMIT = 40000;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint32 private constant NUM_WORDS = 1;
 
     // Events
-    event RaffleEvent(address indexed player);
+    event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
 
     // Constructor
-    constructor(uint256 entranceFee, uint256 interval, address _vrfCoordinator)
-        VRFConsumerBaseV2Plus(_vrfCoordinator)
-    {
-        i_entrance = entranceFee;
+    constructor(
+        uint256 entranceFee,
+        uint256 interval,
+        address vrfCoordinator,
+        bytes32 gasLane,
+        uint32 callbackGasLimit,
+        uint256 subscriptionId,
+        address linkToken,
+        address account
+
+    ) VRFConsumerBaseV2Plus(vrfCoordinator) {
+        i_entranceFee = entranceFee;
         i_interval = interval;
-        s_lasttimestamp = block.timestamp;
-        s_raflestate = Raflestate.OPEN;
+        i_subscriptionId = subscriptionId;
+        i_keyHash = gasLane;
+
+        s_lastTimestamp = block.timestamp;
+        s_raffleState = RaffleState.OPEN;
     }
 
-    // External functions
-
     /**
-     * @notice Allows a user to enter the raffle by paying the entrance fee
+     * @notice Allows a user to enter the raffle
      */
-    function EnterRaffle() external payable {
-        if (msg.value < i_entrance) {
-            revert Moreraffle_Money();
+    function enterRaffle() external payable {
+        if (msg.value < i_entranceFee) {
+            revert InsufficientEntranceFee();
         }
-
-        if (s_raflestate != Raflestate.OPEN) {
-            revert("Raffle is not open");
+        if (s_raffleState != RaffleState.OPEN) {
+            revert RaffleNotOpen();
         }
 
         s_players.push(payable(msg.sender));
-        emit RaffleEvent(msg.sender);
+        emit RaffleEntered(msg.sender);
     }
 
     /**
-     * @notice Checks if the upkeep conditions are met
+     * @notice Check if upkeep is needed
      */
     function checkUpkeep(bytes memory /* checkData */ )
         public
         view
         returns (bool upkeepNeeded, bytes memory /* performData */ )
     {
-        bool timeHasPassed = (block.timestamp - s_lasttimestamp) > i_interval;
-        bool raffleOpen = s_raflestate == Raflestate.OPEN;
+        bool timePassed = (block.timestamp - s_lastTimestamp) > i_interval;
         bool hasPlayers = s_players.length > 0;
+        bool raffleOpen = s_raffleState == RaffleState.OPEN;
 
-        upkeepNeeded = timeHasPassed && raffleOpen && hasPlayers;
-        return (upkeepNeeded, "");
+        upkeepNeeded = timePassed && hasPlayers && raffleOpen;
+        return (upkeepNeeded, "0x0");
     }
 
     /**
-     * @notice Performs the upkeep by requesting random words from Chainlink VRF
+     * @notice Performs upkeep and requests random words
      */
     function performUpkeep(bytes calldata /* performData */ ) external {
         (bool upkeepNeeded,) = checkUpkeep("");
+        if (!upkeepNeeded) revert RaffleUpkeepNotNeeded(address(this).balance, s_players.length, s_raffleState);
 
-        if (!upkeepNeeded) {
-            revert Raffleupkeepnotneeded(address(this).balance, s_players.length, s_raflestate);
-        }
+        s_raffleState = RaffleState.IN_PROGRESS;
 
-        s_raflestate = Raflestate.Inprogress; // Set the state to Inprogress
-
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+        // Request random words
+        s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
-                keyHash: s_keyhash,
-                subId: s_subscriptionid,
-                requestConfirmations: requestConfirmations,
-                callbackGasLimit: callbackGasLimit,
-                numWords: numWords,
+                keyHash: i_keyHash,
+                subId: i_subscriptionId,
+                requestConfirmations: REQUEST_CONFIRMATIONS,
+                callbackGasLimit: CALLBACK_GAS_LIMIT,
+                numWords: NUM_WORDS,
                 extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: true}))
             })
         );
     }
 
     /**
-     * @notice Fulfills the random words request and selects the winner
+     * @notice Fulfills random words and picks the winner
      */
-    function fulfillRandomWords(uint256, /* requestId */ uint256[] calldata randomWords) internal override {
+    function fulfillRandomWords(uint256, uint256[] calldata randomWords) internal override {
         uint256 winnerIndex = randomWords[0] % s_players.length;
-        address payable recentWinner = s_players[winnerIndex];
-        s_recentwinner = recentWinner;
+        address payable winner = s_players[winnerIndex];
+        s_recentWinner = winner;
 
-        // Reset the state
-        s_raflestate = Raflestate.OPEN;
+        // Reset the raffle
+        s_raffleState = RaffleState.OPEN;
         delete s_players;
+        s_lastTimestamp = block.timestamp;
 
-        s_lasttimestamp = block.timestamp;
+        emit WinnerPicked(winner);
 
-        emit WinnerPicked(recentWinner);
-
-        // Transfer the prize
-        (bool success,) = recentWinner.call{value: address(this).balance}("");
-        if (!success) {
-            revert Raffletransaction_Failed();
-        }
+        // Transfer winnings
+        (bool success,) = winner.call{value: address(this).balance}("");
+        if (!success) revert TransactionFailed();
     }
 
-    // View and Pure Functions
-
-    /**
-     * @notice Returns the entrance fee
-     */
+    // View Functions
     function getEntranceFee() external view returns (uint256) {
-        return i_entrance;
+        return i_entranceFee;
     }
 
-    /**
-     * @notice Returns the recent winner
-     */
     function getRecentWinner() external view returns (address) {
-        return s_recentwinner;
+        return s_recentWinner;
+    }
+
+    function getrafflestate() external view returns (RaffleState) {
+        return s_raffleState;
     }
 }
