@@ -1,0 +1,8 @@
+{
+	"editor.definitionLinkOpensInPeek": true,
+	"editor.gotoLocation.multipleTypeDefinitions": "goto",
+	"editor.gotoLocation.multipleDeclarations": "goto",
+	"editor.gotoLocation.multipleDefinitions": "goto",
+	"editor.gotoLocation.multipleImplementations": "goto",
+	"editor.gotoLocation.multipleReferences": "goto"
+}

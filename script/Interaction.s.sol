@@ -8,6 +8,9 @@ import {VRFCoordinatorV2_5Mock} from
 import {CodeConstants} from "script/Networkconfig.s.sol";
 import {LinkToken} from "test/Uint/Mock/Linktoken.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
+import {Raffle} from "src/Raffle.sol";
+
+import {DeployRaffle} from "script/deploy.s.sol";
 
 contract Createsubscription is Script {
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111; // Sepolia chain ID
@@ -16,50 +19,108 @@ contract Createsubscription is Script {
     function CreateSubscriptionconfig() public returns (uint256, address) {
         HelperConfig helperconfig = new HelperConfig();
         address vrfCoordinator = helperconfig.getConfig().vrfCoordinator;
-        (uint256 subid,) = createSubscription(vrfCoordinator);
+        uint256 subscriptionId = helperconfig.getConfigByChainId(block.chainid).subscriptionId;
+        address account = helperconfig.getConfigByChainId(block.chainid).account;
+        return createSubscription(vrfCoordinator, account);
     }
 
-    function createSubscription(address vrfCoordinator) public returns (uint256, address) {
-        console.log("Creating subscription on chain ID:", block.chainid);
-
-        vm.startBroadcast();
-        uint256 subid = VRFCoordinatorV2_5Mock(vrfCoordinator).createSubscription();
+    function createSubscription(address vrfCoordinator, address account) public returns (uint256, address) {
+        vm.startBroadcast(account);
+        uint256 subscriptionId = VRFCoordinatorV2_5Mock(vrfCoordinator).createSubscription();
         vm.stopBroadcast();
-        console.log("your sub id ", subid);
-        return (subid, vrfCoordinator);
+        console.log("Your subscription Id is: ", subscriptionId);
+        console.log("Please update the subscriptionId in HelperConfig.s.sol");
+        return (subscriptionId, vrfCoordinator);
     }
 
-    function run() public {
+    function run() external returns(uint256, address) {
         CreateSubscriptionconfig();
     }
 }
 
+
+
+// contract YourContract {
+
+//     // Check if the address is a contract
+//     function isContract(address _addr) internal view returns (bool) {
+//         uint256 size;
+//         // Assembly to get the code size of the address
+//         assembly {
+//             size := extcodesize(_addr)
+//         }
+//         return size > 0;
+//     }
+// }
+
 contract Fundsubscriotion is Script, CodeConstants {
     uint256 public constant FUND_AMOUNT = 3 ether; // 3 Link token
 
-    function FundsubscriotionLinkConfig() public {
-        HelperConfig helperConfig = new HelperConfig();
-        address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
-        uint256 subscriptionId = helperConfig.getConfig().subscriptionId;
-        address linkToken = helperConfig.getConfig().linkToken;
 
-        fundSubscription(vrfCoordinator, subscriptionId, linkToken);
+    function fundSubscriptionUsingConfig() public {
+        HelperConfig helperConfig = new HelperConfig();
+        uint256 subId = helperConfig.getConfig().subscriptionId;
+        address vrfCoordinatorV2_5 = helperConfig.getConfig().vrfCoordinator;
+        address link = helperConfig.getConfig().linkToken;
+        address account = helperConfig.getConfig().account;
+
+        if (subId == 0) {
+            Createsubscription createSub = new Createsubscription();
+            (uint256 updatedSubId, address updatedVRFv2) = createSub.run();
+            subId = updatedSubId;
+            vrfCoordinatorV2_5 = updatedVRFv2;
+            console.log("New SubId Created! ", subId, "VRF Address: ", vrfCoordinatorV2_5);
+        }
+
+        fundSubscription(vrfCoordinatorV2_5, subId, link, account);
     }
 
-    function fundSubscription(address vrfCoordinator, uint256 subscriptionId, address linkToken) public {
+    function fundSubscription(address vrfCoordinatorV2_5, uint256 subId, address link, address account) public {
+
         if (block.chainid == LOCAL_CHAIN_ID) {
-            vm.startBroadcast();
-            VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subscriptionId, FUND_AMOUNT);
+            vm.startBroadcast(account);
+            VRFCoordinatorV2_5Mock(vrfCoordinatorV2_5).fundSubscription(subId, FUND_AMOUNT);
             vm.stopBroadcast();
         } else {
-            vm.startBroadcast();
+            vm.startBroadcast(account);
+            bool success =LinkToken(link).transferAndCall(vrfCoordinatorV2_5, FUND_AMOUNT, abi.encode(subId));
+            require(success, "Funding subscription failed");
 
-            LinkToken(linkToken).transferAndCall(vrfCoordinator, FUND_AMOUNT, abi.encode(subscriptionId));
             vm.stopBroadcast();
         }
     }
 
-    function run() public {
-        FundsubscriotionLinkConfig();
+    function run() external {
+        fundSubscriptionUsingConfig();
     }
+}
+
+// add consumer by fetching the recent deplpoyed address
+//you can use foundry devopps for fetching latest deplyed address
+
+contract Addconsumer is Script {
+
+    function addConsumer(address contractToAddToVrf, address vrfCoordinator, uint256 subId, address account) public {
+        console.log("Adding consumer contract: ", contractToAddToVrf);
+        console.log("Using vrfCoordinator: ", vrfCoordinator);
+        console.log("On ChainID: ", block.chainid);
+        vm.startBroadcast(account);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, contractToAddToVrf);
+        vm.stopBroadcast();
+    }
+
+    function addConsumerUsingConfig(address mostRecentlyDeployed) public {
+        HelperConfig helperConfig = new HelperConfig();
+        uint256 subId = helperConfig.getConfig().subscriptionId;
+        address vrfCoordinatorV2_5 = helperConfig.getConfig().vrfCoordinator;
+        address account = helperConfig.getConfig().account;
+
+        addConsumer(mostRecentlyDeployed, vrfCoordinatorV2_5, subId, account);
+    }
+
+    function run() external {
+        address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment("Raffle", block.chainid);
+        addConsumerUsingConfig(mostRecentlyDeployed);
+    }
+
 }

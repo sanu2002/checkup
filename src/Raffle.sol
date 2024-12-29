@@ -55,7 +55,6 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 subscriptionId,
         address linkToken,
         address account
-
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
         i_entranceFee = entranceFee;
         i_interval = interval;
@@ -94,7 +93,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         bool raffleOpen = s_raffleState == RaffleState.OPEN;
 
         upkeepNeeded = timePassed && hasPlayers && raffleOpen;
-        return (upkeepNeeded, "0x0");
+        return (upkeepNeeded, "");
     }
 
     /**
@@ -114,7 +113,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 requestConfirmations: REQUEST_CONFIRMATIONS,
                 callbackGasLimit: CALLBACK_GAS_LIMIT,
                 numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: true}))
+                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
             })
         );
     }

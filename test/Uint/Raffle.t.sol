@@ -30,34 +30,44 @@ contract TestRaffle is Test, Script, CodeConstants {
 
     address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_PLAYER_BALANCE = 10 ether;
-    uint256 public constant LINK_BALANCE = 100 ether;
+    uint256 public constant LINK_BALANCE = 10 ether;
 
     function setUp() external {
 
-           DeployRaffle deployRaffle = new DeployRaffle();  
-           (raffle, helperConfig) = deployRaffle.run();
-           vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
-
-           HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
-
-            entranceFee=config.entranceFee;
-            interval=config.interval;
-            vrfCoordinator=config.vrfCoordinator;
-            gasLane=config.gasLane;
-            callbackGasLimit=config.callbackGasLimit;
-            subscriptionId=config.subscriptionId ;
-            link=LinkToken(config.linkToken);
+        DeployRaffle deployRaffle = new DeployRaffle();
+        (raffle, helperConfig) = deployRaffle.run();
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
 
 
-            
-            vm.startPrank(msg.sender);
-            if (block.chainid == LOCAL_CHAIN_ID) {
-                VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subscriptionId, LINK_BALANCE);
-            }
-            vm.stopPrank();
-      
+        HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
 
         
+        entranceFee = config.entranceFee;
+        interval = config.interval;
+        vrfCoordinator = config.vrfCoordinator;
+        gasLane = config.gasLane;
+        callbackGasLimit = config.callbackGasLimit;
+        subscriptionId = config.subscriptionId;
+        link = LinkToken(config.linkToken);
+
+        vm.startPrank(msg.sender);
+        if (block.chainid == LOCAL_CHAIN_ID) {
+            link.mint(msg.sender, LINK_BALANCE);
+            VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subscriptionId, LINK_BALANCE);
+        }
+        link.approve(vrfCoordinator, LINK_BALANCE);
+        vm.stopPrank();
+
+
+
+ 
+
+
+
+
+
+
+        // console.log("Which netwroke you are in ",block.chainid);
     }
 
     function test_Rafflestateisopen() external view {
@@ -98,28 +108,20 @@ contract TestRaffle is Test, Script, CodeConstants {
     /**
      * s_raffleState = RaffleState.IN_PROGRESS;  make sure it is preventing the user for entering into the raffle
      */
-
-
-     
-
     function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
         // Arrange
         vm.prank(PLAYER);
-        raffle.enterRaffle{value:entranceFee }();
+        raffle.enterRaffle{value: entranceFee}();
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
-        raffle.performUpkeep("");
+
+        raffle.performUpkeep("");//[[we have written a lot of code jsut for this performUpkeep because hete we need to 
+        // add consumer , create subscription and fund subscription so we have written a lot of code for this function]]
+        
 
         // Act / Assert
         vm.expectRevert(Raffle.RaffleNotOpen.selector);
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
     }
-
-
-
-
-
-
-
 }

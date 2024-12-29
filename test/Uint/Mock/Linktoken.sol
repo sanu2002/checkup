@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >0.2.0 <0.9.0;
+// @dev This contract has been adapted to fit with foundry
+pragma solidity ^0.8.0;
 
 import {ERC20} from "@solmate/tokens/ERC20.sol";
+import {console} from "lib/forge-std/src/console.sol";
 
 interface ERC677Receiver {
     function onTokenTransfer(address _sender, uint256 _value, bytes memory _data) external;
