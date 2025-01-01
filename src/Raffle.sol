@@ -6,6 +6,7 @@ import {VRFConsumerBaseV2Plus} from
     "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
+
 /**
  * @title A Simple Raffle Contract
  * @notice This contract allows users to enter a raffle with automated winner selection using Chainlink VRF v2.5
@@ -30,6 +31,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint256 private immutable i_interval;
     uint256 private immutable i_subscriptionId;
     bytes32 private immutable i_keyHash;
+    uint32 private immutable i_callbackGasLimit;
+    address private immutable i_linkToken;
+    address private immutable i_account;
 
     uint256 private s_lastTimestamp;
     address private s_recentWinner;
@@ -44,6 +48,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     // Events
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
+    event Requestidemit(uint256 indexed requestid);
 
     // Constructor
     constructor(
@@ -60,6 +65,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
         i_interval = interval;
         i_subscriptionId = subscriptionId;
         i_keyHash = gasLane;
+        i_callbackGasLimit = callbackGasLimit;
+        i_linkToken = linkToken;
+        i_account = account;
 
         s_lastTimestamp = block.timestamp;
         s_raffleState = RaffleState.OPEN;
@@ -106,16 +114,26 @@ contract Raffle is VRFConsumerBaseV2Plus {
         s_raffleState = RaffleState.IN_PROGRESS;
 
         // Request random words
-        s_vrfCoordinator.requestRandomWords(
-            VRFV2PlusClient.RandomWordsRequest({
+        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
                 subId: i_subscriptionId,
                 requestConfirmations: REQUEST_CONFIRMATIONS,
                 callbackGasLimit: CALLBACK_GAS_LIMIT,
                 numWords: NUM_WORDS,
                 extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
-            })
-        );
+        });
+
+
+        //Here we will emit the event with request id 
+        uint256 requestid=s_vrfCoordinator.requestRandomWords(request);
+
+        emit Requestidemit(requestid);
+
+
+
+
+
+
     }
 
     /**
@@ -150,4 +168,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
     function getrafflestate() external view returns (RaffleState) {
         return s_raffleState;
     }
+
+    function lasttimestamp() external view returns (uint256) {
+        return s_lastTimestamp;
+    }
+
 }

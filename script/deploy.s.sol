@@ -17,24 +17,15 @@ contract DeployRaffle is Script {
     function run() external returns (Raffle, HelperConfig) {
         HelperConfig helperconfig = new HelperConfig();
         HelperConfig.NetworkConfig memory config = helperconfig.getConfig();
-        Addconsumer addConsumer = new Addconsumer();
 
-
-            // entranceFee: 0.01 ether,
-            // interval: 30,
-            // vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
-            // gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-            // callbackGasLimit: 100000,
-            // subscriptionId: 0,
-            // linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
-            // account: 0x307C9B74cb5D249b1653755B7384E2E1e565da15
-            
-
-
-
-
-    
-
+        // entranceFee: 0.01 ether,
+        // interval: 30,
+        // vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
+        // gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
+        // callbackGasLimit: 100000,
+        // subscriptionId: 0,
+        // linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+        // account: 0x307C9B74cb5D249b1653755B7384E2E1e565da15
 
         if (config.subscriptionId == 0) {
             Createsubscription createSubscription = new Createsubscription();
@@ -43,34 +34,26 @@ contract DeployRaffle is Script {
 
             Fundsubscriotion fundSubscription = new Fundsubscriotion();
 
-            fundSubscription.fundSubscription(config.vrfCoordinator, config.subscriptionId, config.linkToken, config.account);
+            fundSubscription.fundSubscription(
+                config.vrfCoordinator, config.subscriptionId, config.linkToken, config.account
+            );
 
             helperconfig.setConfig(block.chainid, config);
-
         }
 
+        //   Subscription ID:  114305291063706223504837531506660974862930748414907438796828215712982531138596
 
-            //   Subscription ID:  114305291063706223504837531506660974862930748414907438796828215712982531138596
+        //  console2.log("+++++++++++++++++++++++++++++++++++++++++++++");
 
-
-
-
-
-            //  console2.log("+++++++++++++++++++++++++++++++++++++++++++++");
-
-            // console2.log("Entrance fee: ", config.entranceFee);
-            // console2.log("Interval: ", config.interval);
-            // console2.log("VRF Coordinator: ", config.vrfCoordinator);
-            // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
-            // console2.log("Subscription ID: ", config.subscriptionId);
-            // console2.log("Link Token: ", config.linkToken);
-            // console2.log("Account: ", config.account);
-            // console2.log("chainid:", block.chainid);
-            // console2.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-
-                                
-
-
+        // console2.log("Entrance fee: ", config.entranceFee);
+        // console2.log("Interval: ", config.interval);
+        // console2.log("VRF Coordinator: ", config.vrfCoordinator);
+        // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
+        // console2.log("Subscription ID: ", config.subscriptionId);
+        // console2.log("Link Token: ", config.linkToken);
+        // console2.log("Account: ", config.account);
+        // console2.log("chainid:", block.chainid);
+        // console2.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
         vm.startBroadcast((config.account));
 
@@ -85,36 +68,29 @@ contract DeployRaffle is Script {
             config.account
         );
 
-      
-
         vm.stopBroadcast();
 
+        //  console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
-            //  console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-            // console2.log("Entrance fee: ", config.entranceFee);
-            // console2.log("Interval: ", config.interval);
-            // console2.log("VRF Coordinator: ", config.vrfCoordinator);
-            // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
-            // console2.log("Subscription ID: ", config.subscriptionId);
-            // console2.log("Link Token: ", config.linkToken);
-            // console2.log("Account: ", config.account);
-            // console2.log("chainid:", block.chainid);
-            // console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
+        // console2.log("Entrance fee: ", config.entranceFee);
+        // console2.log("Interval: ", config.interval);
+        // console2.log("VRF Coordinator: ", config.vrfCoordinator);
+        // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
+        // console2.log("Subscription ID: ", config.subscriptionId);
+        // console2.log("Link Token: ", config.linkToken);
+        // console2.log("Account: ", config.account);
+        // console2.log("chainid:", block.chainid);
+        // console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
         console2.log("->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         console2.log(address(raffle));
-        console2.log("Raffle contract deployed",config.vrfCoordinator);
-        console2.log("Raffle contract deployed",config.subscriptionId);
-        console2.log("Raffle contract deployed",config.account);
+        console2.log("Raffle contract deployed", config.vrfCoordinator);
+        console2.log("Raffle contract deployed", config.subscriptionId);
+        console2.log("Raffle contract deployed", config.account);
         console2.log("->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-
-        
-
+        Addconsumer addConsumer = new Addconsumer();
         addConsumer.addConsumer(address(raffle), config.vrfCoordinator, config.subscriptionId, config.account);
-
 
         console2.log("Added Raffle contract as a consumer");
         emit RaffleDeployed(address(raffle));
