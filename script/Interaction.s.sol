@@ -75,7 +75,7 @@ contract Fundsubscriotion is Script, CodeConstants {
     function fundSubscription(address vrfCoordinatorV2_5, uint256 subId, address link, address account) public {
         if (block.chainid == LOCAL_CHAIN_ID) {
             vm.startBroadcast(account);
-            VRFCoordinatorV2_5Mock(vrfCoordinatorV2_5).fundSubscription(subId, FUND_AMOUNT*90000 ); //we can a ;little bit cheat here because our last test case failed to to fund amlunt 
+            VRFCoordinatorV2_5Mock(vrfCoordinatorV2_5).fundSubscription(subId, FUND_AMOUNT*100); //we can a ;little bit cheat here because our last test case failed to to fund amlunt
             vm.stopBroadcast();
         } else {
             vm.startBroadcast(account);

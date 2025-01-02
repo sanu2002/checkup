@@ -41,21 +41,9 @@ contract DeployRaffle is Script {
             helperconfig.setConfig(block.chainid, config);
         }
 
-        //   Subscription ID:  114305291063706223504837531506660974862930748414907438796828215712982531138596
+   
 
-        //  console2.log("+++++++++++++++++++++++++++++++++++++++++++++");
-
-        // console2.log("Entrance fee: ", config.entranceFee);
-        // console2.log("Interval: ", config.interval);
-        // console2.log("VRF Coordinator: ", config.vrfCoordinator);
-        // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
-        // console2.log("Subscription ID: ", config.subscriptionId);
-        // console2.log("Link Token: ", config.linkToken);
-        // console2.log("Account: ", config.account);
-        // console2.log("chainid:", block.chainid);
-        // console2.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-
-        vm.startBroadcast((config.account));
+        vm.startBroadcast(config.account);
 
         Raffle raffle = new Raffle(
             config.entranceFee,
@@ -69,26 +57,7 @@ contract DeployRaffle is Script {
         );
 
         vm.stopBroadcast();
-
-        //  console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-        // console2.log("Entrance fee: ", config.entranceFee);
-        // console2.log("Interval: ", config.interval);
-        // console2.log("VRF Coordinator: ", config.vrfCoordinator);
-        // console2.log("Callback Gas Limit: ", config.callbackGasLimit);
-        // console2.log("Subscription ID: ", config.subscriptionId);
-        // console2.log("Link Token: ", config.linkToken);
-        // console2.log("Account: ", config.account);
-        // console2.log("chainid:", block.chainid);
-        // console2.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-        console2.log("->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-        console2.log(address(raffle));
-        console2.log("Raffle contract deployed", config.vrfCoordinator);
-        console2.log("Raffle contract deployed", config.subscriptionId);
-        console2.log("Raffle contract deployed", config.account);
-        console2.log("->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-
+     
         Addconsumer addConsumer = new Addconsumer();
         addConsumer.addConsumer(address(raffle), config.vrfCoordinator, config.subscriptionId, config.account);
 

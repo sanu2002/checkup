@@ -6,7 +6,6 @@ import {VRFConsumerBaseV2Plus} from
     "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-
 /**
  * @title A Simple Raffle Contract
  * @notice This contract allows users to enter a raffle with automated winner selection using Chainlink VRF v2.5
@@ -115,25 +114,18 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
         // Request random words
         VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
-                keyHash: i_keyHash,
-                subId: i_subscriptionId,
-                requestConfirmations: REQUEST_CONFIRMATIONS,
-                callbackGasLimit: CALLBACK_GAS_LIMIT,
-                numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
+            keyHash: i_keyHash,
+            subId: i_subscriptionId,
+            requestConfirmations: REQUEST_CONFIRMATIONS,
+            callbackGasLimit: CALLBACK_GAS_LIMIT,
+            numWords: NUM_WORDS,
+            extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
         });
 
-
-        //Here we will emit the event with request id 
-        uint256 requestid=s_vrfCoordinator.requestRandomWords(request);
+        //Here we will emit the event with request id
+        uint256 requestid = s_vrfCoordinator.requestRandomWords(request);
 
         emit Requestidemit(requestid);
-
-
-
-
-
-
     }
 
     /**
@@ -172,5 +164,4 @@ contract Raffle is VRFConsumerBaseV2Plus {
     function lasttimestamp() external view returns (uint256) {
         return s_lastTimestamp;
     }
-
 }
